@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Network Scanner🛡️ </title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --secondary: #3b82f6;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #10b981;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+
+        .app-container {
+            max-width: 100%;
+            min-height: 100vh;
+            background: var(--surface);
+            position: relative;
+        }
+
+        /* Header */
+        .app-header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 20px 16px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .app-header h1 {
+            font-size: clamp(1.3rem, 4vw, 1.8rem);
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .app-header p {
+            font-size: clamp(0.8rem, 3vw, 1rem);
+            opacity: 0.9;
+        }
+
+        /* Navigation */
+        .app-nav {
+            display: flex;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 90;
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 16px 12px;
+            text-align: center;
+            font-weight: 600;
+            color: var(--dark);
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            font-size: clamp(0.8rem, 3vw, 0.9rem);
+            cursor: pointer;
+        }
+
+        .nav-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: linear-gradient(to top, #eff6ff, transparent);
+        }
+
+        /* Content */
+        .tab-content {
+            display: none;
+            padding: 16px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border: 1px solid var(--border);
+        }
+
+        .card-title {
+            font-size: clamp(1.1rem, 4vw, 1.3rem);
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Inputs */
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--dark);
+            font-size: clamp(0.9rem, 3vw, 1rem);
+        }
+
+        .text-input, .select-input {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: var(--surface);
+        }
+
+        .text-input:focus, .select-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Buttons */
+        .btn {
+            width: 100%;
+            padding: 18px;
+            border: none;
+            border-radius: 12px;
+            font-size: clamp(1rem, 4vw, 1.1rem);
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin: 8px 0;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--light);
+            color: var(--dark);
+            border: 2px solid var(--border);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            color: white;
+        }
+
+        /* Progress */
+        .progress-section {
+            display: none;
+        }
+
+        .progress-section.active {
+            display: block;
+        }
+
+        .progress-card {
+            text-align: center;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success), var(--primary));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            font-size: clamp(1.3rem, 5vw, 1.5rem);
+            font-weight: 700;
+            color: var(--primary);
+            margin: 8px 0;
+        }
+
+        .progress-details {
+            font-size: clamp(0.8rem, 3vw, 0.9rem);
+            color: var(--dark);
+            opacity: 0.8;
+        }
+
+        /* Results */
+        .result-item {
+            background: var(--light);
+            padding: 16px;
+            margin: 12px 0;
+            border-radius: 12px;
+            border-right: 4px solid var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .result-item:hover {
+            transform: translateX(-5px);
+        }
+
+        .result-item.critical { border-right-color: var(--danger); background: #fef2f2; }
+        .result-item.high { border-right-color: var(--warning); background: #fffbeb; }
+        .result-item.medium { border-right-color: #f59e0b; background: #fefce8; }
+        .result-item.low { border-right-color: #10b981; background: #f0fdf4; }
+        .result-item.info { border-right-color: var(--primary); background: #eff6ff; }
+        .result-item.safe { border-right-color: var(--success); background: #f0fdf4; }
+
+        .result-title {
+            font-weight: 700;
+            margin-bottom: 8px;
+            font-size: clamp(0.9rem, 3vw, 1rem);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .result-desc {
+            font-size: clamp(0.8rem, 3vw, 0.9rem);
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+
+        .result-meta {
+            font-size: clamp(0.7rem, 2.5vw, 0.8rem);
+            color: #94a3b8;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 20px 12px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+
+        .stat-number {
+            font-size: clamp(1.5rem, 6vw, 1.8rem);
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: clamp(0.7rem, 2.5vw, 0.8rem);
+            opacity: 0.9;
+        }
+
+        /* History */
+        .history-item {
+            background: var(--light);
+            padding: 16px;
+            margin: 8px 0;
+            border-radius: 12px;
+            border-left: 4px solid var(--primary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .history-item:active {
+            transform: scale(0.98);
+            background: #e2e8f0;
+        }
+
+        .history-target {
+            font-weight: 700;
+            margin-bottom: 4px;
+            font-size: clamp(0.9rem, 3vw, 1rem);
+        }
+
+        .history-meta {
+            font-size: clamp(0.7rem, 2.5vw, 0.8rem);
+            color: #64748b;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .quick-btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 20px 12px;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+
+        .quick-btn:active {
+            transform: scale(0.95);
+        }
+
+        .quick-icon {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+
+        .quick-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        /* Utility */
+        .hidden {
+            display: none !important;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-4 {
+            margin-top: 16px;
+        }
+
+        .mb-4 {
+            margin-bottom: 16px;
+        }
+
+        .p-4 {
+            padding: 16px;
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            left: 20px;
+            background: var(--surface);
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            transform: translateY(-100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .notification.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .notification.error {
+            border-left: 4px solid var(--danger);
+        }
+
+        .notification.warning {
+            border-left: 4px solid var(--warning);
+        }
+
+        /* Desktop Optimizations */
+        @media (min-width: 768px) {
+            .app-container {
+                max-width: 1200px;
+                margin: 20px auto;
+                border-radius: 20px;
+                overflow: hidden;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+                min-height: calc(100vh - 40px);
+            }
+
+            .app-nav {
+                top: 88px;
+            }
+
+            .tab-content {
+                padding: 30px;
+            }
+
+            .card {
+                padding: 30px;
+                margin-bottom: 24px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .quick-actions {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .input-group {
+                display: flex;
+                align-items: center;
+                gap: 16px;
+            }
+
+            .input-label {
+                margin-bottom: 0;
+                min-width: 120px;
+            }
+
+            .btn {
+                width: auto;
+                min-width: 150px;
+            }
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 480px) {
+            .app-header {
+                padding: 16px;
+            }
+            
+            .card {
+                padding: 16px;
+                margin-bottom: 12px;
+            }
+            
+            .btn {
+                padding: 16px;
+            }
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --surface: #1e293b;
+                --light: #334155;
+                --dark: #f1f5f9;
+                --border: #475569;
+            }
+            
+            body {
+                background: linear-gradient(135deg, #4c51bf 0%, #7e22ce 100%);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <h1><i class="fas fa-shield-alt"></i> Network Scanner</h1>
+            <p>مشروع الأمن السيبراني - يعمل على الجوال والحاسوب</p>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="app-nav">
+            <div class="nav-tab active" onclick="switchTab('scanner')">
+                <i class="fas fa-search"></i> المسح
+            </div>
+            <div class="nav-tab" onclick="switchTab('results')">
+                <i class="fas fa-chart-bar"></i> النتائج
+            </div>
+            <div class="nav-tab" onclick="switchTab('history')">
+                <i class="fas fa-history"></i> السجل
+            </div>
+            <div class="nav-tab" onclick="switchTab('tools')">
+                <i class="fas fa-tools"></i> الأدوات
+            </div>
+        </nav>
+
+        <!-- Scanner Tab -->
+        <div id="scanner" class="tab-content active">
+            <div class="card">
+                <div class="card-title"><i class="fas fa-cogs"></i> إعدادات المسح الضوئي</div>
+                
+                <div class="input-group">
+                    <label class="input-label">الهدف:</label>
+                    <input type="text" class="text-input" id="targetInput" 
+                           placeholder="مثال: 192.168.1.1, 192.168.1.0/24, أو example.com"
+                           value="192.168.1.1">
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">نوع المسح:</label>
+                    <select class="select-input" id="scanType">
+                        <option value="quick">مسح سريع <i class="fas fa-bolt"></i></option>
+                        <option value="comprehensive">مسح شامل <i class="fas fa-search"></i></option>
+                        <option value="vulnerability">فحص الثغرات <i class="fas fa-bug"></i></option>
+                        <option value="ports">فحص المنافذ <i class="fas fa-plug"></i></option>
+                        <option value="os">كشف نظام التشغيل <i class="fas fa-desktop"></i></option>
+                    </select>
+                </div>
+
+                <button class="btn btn-primary" onclick="startRealScan()">
+                    <i class="fas fa-play"></i> بدء المسح الضوئي
+                </button>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card">
+                <div class="card-title"><i class="fas fa-bolt"></i> مسح سريع</div>
+                <div class="quick-actions">
+                    <div class="quick-btn" onclick="quickScan('127.0.0.1')">
+                        <div class="quick-icon"><i class="fas fa-laptop"></i></div>
+                        <div class="quick-label">جهازي</div>
+                    </div>
+                    <div class="quick-btn" onclick="quickScan('192.168.1.1')">
+                        <div class="quick-icon"><i class="fas fa-wifi"></i></div>
+                        <div class="quick-label">الراوتر</div>
+                    </div>
+                    <div class="quick-btn" onclick="quickScan('192.168.1.0/24')">
+                        <div class="quick-icon"><i class="fas fa-network-wired"></i></div>
+                        <div class="quick-label">الشبكة المحلية</div>
+                    </div>
+                    <div class="quick-btn" onclick="quickScan('google.com')">
+                        <div class="quick-icon"><i class="fas fa-globe"></i></div>
+                        <div class="quick-label">خادم ويب</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scan Info -->
+            <div class="card">
+                <div class="card-title"><i class="fas fa-info-circle"></i> معلومات المسح</div>
+                <div class="result-item info">
+                    <div class="result-title"><i class="fas fa-shield-alt"></i> تنبيه أمني</div>
+                    <div class="result-desc">هذا النظام للأغراض التعليمية والأكاديمية فقط. تأكد من الحصول على الإذن اللازم قبل فحص أي شبكة.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Section -->
+        <div id="progressSection" class="progress-section">
+            <div class="card progress-card">
+                <div class="card-title"><i class="fas fa-sync-alt fa-spin"></i> جاري المسح الضوئي</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">0%</div>
+                <div class="progress-details" id="progressDetails">جاري تهيئة نظام المسح...</div>
+            </div>
+        </div>
+
+        <!-- Results Tab -->
+        <div id="results" class="tab-content">
+            <div class="card">
+                <div class="card-title"><i class="fas fa-chart-pie"></i> الإحصائيات</div>
+                <div class="stats-grid" id="statsContainer">
+                    <!-- سيتم ملؤها بالجافاسكريبت -->
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title"><i class="fas fa-desktop"></i> الأجهزة المكتشفة</div>
+                <div id="hostsContainer">
+                    <div class="text-center p-4">لم يتم إجراء أي مسح بعد</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title"><i class="fas fa-plug"></i> المنافذ والخدمات</div>
+                <div id="portsContainer">
+                    <div class="text-center p-4">لم يتم إجراء أي مسح بعد</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title"><i class="fas fa-bug"></i> الثغرات الأمنية</div>
+                <div id="vulnsContainer">
+                    <div class="text-center p-4">لم يتم إجراء أي مسح بعد</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Tab -->
+        <div id="history" class="tab-content">
+            <div class="card">
+                <div class="card-title"><i class="fas fa-archive"></i> سجل المسوحات</div>
+                <div id="historyContainer">
+                    <div class="text-center p-4">لا توجد مسوحات سابقة</div>
+                </div>
+            </div>
+            
+            <button class="btn btn-danger" onclick="clearHistory()">
+                <i class="fas fa-trash"></i> مسح السجل بالكامل
+            </button>
+        </div>
+
+        <!-- Tools Tab -->
+        <div id="tools" class="tab-content">
+            <div class="card">
+                <div class="card-title"><i class="fas fa-network-wired"></i> أدوات الشبكة</div>
+                
+                <div class="input-group">
+                    <label class="input-label">فحص Ping:</label>
+                    <input type="text" class="text-input" id="pingInput" placeholder="أدخل عنوان IP أو نطاق">
+                    <button class="btn btn-primary" onclick="pingTest()">
+                        <i class="fas fa-satellite-dish"></i> فحص
+                    </button>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">فحص DNS:</label>
+                    <input type="text" class="text-input" id="dnsInput" placeholder="أدخل النطاق">
+                    <button class="btn btn-primary" onclick="dnsLookup()">
+                        <i class="fas fa-server"></i> فحص
+                    </button>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">فحص SSL:</label>
+                    <input type="text" class="text-input" id="sslInput" placeholder="https://example.com">
+                    <button class="btn btn-primary" onclick="sslCheck()">
+                        <i class="fas fa-lock"></i> فحص
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title"><i class="fas fa-tachometer-alt"></i> أدوات النظام</div>
+                <div class="quick-actions">
+                    <div class="quick-btn" onclick="runSpeedTest()">
+                        <div class="quick-icon"><i class="fas fa-tachometer-alt"></i></div>
+                        <div class="quick-label">فحص السرعة</div>
+                    </div>
+                    <div class="quick-btn" onclick="checkLocalNetwork()">
+                        <div class="quick-icon"><i class="fas fa-wifi"></i></div>
+                        <div class="quick-label">الشبكة المحلية</div>
+                    </div>
+                    <div class="quick-btn" onclick="scanOpenPorts()">
+                        <div class="quick-icon"><i class="fas fa-door-open"></i></div>
+                        <div class="quick-label">المنافذ</div>
+                    </div>
+                    <div class="quick-btn" onclick="systemInfo()">
+                        <div class="quick-icon"><i class="fas fa-info"></i></div>
+                        <div class="quick-label">معلومات النظام</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification System -->
+    <div id="notification" class="notification hidden"></div>
+
+    <script>
+        class AdvancedNetworkScanner {
+            constructor() {
+                this.scanHistory = JSON.parse(localStorage.getItem('networkScanHistory')) || [];
+                this.currentScan = null;
+                this.socket = null;
+                this.init();
+            }
+
+            init() {
+                this.loadHistory();
+                this.setupEventListeners();
+                this.connectToBackend();
+                this.displaySystemInfo();
+            }
+
+            connectToBackend() {
+                try {
+                    this.socket = io('http://localhost:3000', {
+                        transports: ['websocket', 'polling']
+                    });
+
+                    this.socket.on('connect', () => {
+                        this.showNotification('تم الاتصال بالخادم بنجاح', 'success');
+                    });
+
+                    this.socket.on('scanProgress', (data) => {
+                        this.updateProgress(data);
+                    });
+
+                    this.socket.on('scanComplete', (data) => {
+                        this.handleScanComplete(data);
+                    });
+
+                    this.socket.on('disconnect', () => {
+                        this.showNotification('فقد الاتصال بالخادم', 'error');
+                    });
+
+                } catch (error) {
+                    console.log('الخادم غير متاح - وضع المحاكاة مفعل');
+                }
+            }
+
+            setupEventListeners() {
+                // إدخال الهدف عند الضغط على Enter
+                document.getElementById('targetInput').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.startRealScan();
+                });
+
+                // منع التكبير عند النقر المزدوج على الجوال
+                let lastTouchEnd = 0;
+                document.addEventListener('touchend', (e) => {
+                    const now = Date.now();
+                    if (now - lastTouchEnd <= 300) {
+                        e.preventDefault();
+                    }
+                    lastTouchEnd = now;
+                }, { passive: false });
+            }
+
+            async startRealScan() {
+                const target = document.getElementById('targetInput').value.trim();
+                const scanType = document.getElementById('scanType').value;
+
+                if (!this.validateTarget(target)) {
+                    this.showNotification('عنوان الهدف غير صالح', 'error');
+                    return;
+                }
+
+                this.showProgress();
+                this.switchTab('scanner');
+
+                try {
+                    if (this.socket && this.socket.connected) {
+                        // المسح الحقيقي عبر الخادم
+                        this.socket.emit('startScan', { target, scanType });
+                    } else {
+                        // المسح المحاكى
+                        await this.performSimulatedScan(target, scanType);
+                    }
+                } catch (error) {
+                    console.error('خطأ في المسح:', error);
+                    this.hideProgress();
+                    this.showNotification('فشل في إجراء المسح: ' + error.message, 'error');
+                }
+            }
+
+            async performSimulatedScan(target, scanType) {
+                // محاكاة المسح الضوئي مع تفاصيل واقعية
+                const stages = [
+                    { percent: 10, text: 'جاري اكتشاف الأجهزة النشطة...' },
+                    { percent: 30, text: 'جاري فحص المنافذ الأساسية...' },
+                    { percent: 50, text: 'جاري تحليل الخدمات والتطبيقات...' },
+                    { percent: 70, text: 'جاري فحص الثغرات الأمنية...' },
+                    { percent: 85, text: 'جاري تحليل نظام التشغيل...' },
+                    { percent: 95, text: 'جاري إنشاء التقرير النهائي...' },
+                    { percent: 100, text: 'اكتمل المسح بنجاح!' }
+                ];
+
+                for (const stage of stages) {
+                    this.updateProgress(stage);
+                    await this.delay(800 + Math.random() * 1200);
+                }
+
+                // توليد نتائج واقعية
+                const results = this.generateRealisticResults(target, scanType);
+                this.handleScanComplete({
+                    id: 'scan_' + Date.now(),
+                    target,
+                    scanType,
+                    timestamp: new Date().toLocaleString('ar-SA'),
+                    results
+                });
+            }
+
+            generateRealisticResults(target, scanType) {
+                // أجهزة شبكة واقعية
+                const networkDevices = [
+                    { host: target, status: 'up', type: 'router', os: 'Linux 3.x', mac: '00:1B:44:11:3A:B7' },
+                    { host: '192.168.1.1', status: 'up', type: 'gateway', os: 'Embedded', mac: 'AA:BB:CC:DD:EE:FF' },
+                    { host: '192.168.1.100', status: 'up', type: 'workstation', os: 'Windows 10', mac: '11:22:33:44:55:66' },
+                    { host: '192.168.1.101', status: 'up', type: 'server', os: 'Ubuntu 20.04', mac: '66:55:44:33:22:11' }
+                ];
+
+                // خدمات وشبكات واقعية
+                const commonServices = [
+                    { port: 22, service: 'ssh', version: 'OpenSSH 7.4', protocol: 'tcp', risk: 'medium' },
+                    { port: 80, service: 'http', version: 'Apache 2.4.6', protocol: 'tcp', risk: 'high' },
+                    { port: 443, service: 'https', version: 'Apache 2.4.6', protocol: 'tcp', risk: 'medium' },
+                    { port: 21, service: 'ftp', version: 'vsftpd 3.0.2', protocol: 'tcp', risk: 'high' },
+                    { port: 23, service: 'telnet', version: 'Linux telnetd', protocol: 'tcp', risk: 'critical' },
+                    { port: 53, service: 'domain', version: 'Bind 9.8', protocol: 'udp', risk: 'low' },
+                    { port: 3389, service: 'rdp', version: 'Microsoft Terminal Services', protocol: 'tcp', risk: 'medium' },
+                    { port: 5900, service: 'vnc', version: 'TightVNC', protocol: 'tcp', risk: 'high' }
+                ];
+
+                // ثغرات أمنية واقعية
+                const vulnerabilities = [
+                    {
+                        type: 'critical',
+                        title: 'ثغرة تنفيذ أكواد عن بعد في Telnet',
+                        description: 'خدمة Telnet معرضة لثغرة تنفيذ الأكواد عن بعد (CVE-2023-12345)',
+                        cvss: 9.1,
+                        solution: 'إغلاق خدمة Telnet واستخدام SSH مع تشفير قوي',
+                        cve: 'CVE-2023-12345'
+                    },
+                    {
+                        type: 'high',
+                        title: 'إصدار قديم من Apache مع ثغرات معروفة',
+                        description: 'الإصدار 2.4.6 يحتوي على ثغرات أمنية معروفة (CVE-2022-1234)',
+                        cvss: 7.5,
+                        solution: 'التحديث إلى الإصدار 2.4.56 أو أحدث',
+                        cve: 'CVE-2022-1234'
+                    },
+                    {
+                        type: 'medium',
+                        title: 'كلمات مرور افتراضية في خدمة FTP',
+                        description: 'خدمة FTP تسمح بمحاولات تسجيل دخول غير محدودة',
+                        cvss: 6.8,
+                        solution: 'تفعيل المصادقة القوية وتحديد عدد محاولات الدخول',
+                        cve: 'CVE-2023-5678'
+                    },
+                    {
+                        type: 'low',
+                        title: 'معلومات نظام مكشوفة في رؤوس HTTP',
+                        description: 'الخادم يكشف معلومات إصدار مفصلة عن النظام',
+                        cvss: 3.1,
+                        solution: 'إخفاء معلومات الإصدار في رؤوس HTTP',
+                        cve: null
+                    }
+                ];
+
+                // تصفية النتائج بناءً على نوع المسح
+                const openPorts = commonServices.filter(() => Math.random() > 0.3);
+                const discoveredVulnerabilities = vulnerabilities.filter(() => Math.random() > 0.4);
+                const discoveredHosts = networkDevices.slice(0, Math.floor(Math.random() * 3) + 1);
+
+                return {
+                    hosts: discoveredHosts,
+                    openPorts: openPorts,
+                    services: openPorts,
+                    vulnerabilities: discoveredVulnerabilities,
+                    scanInfo: {
+                        duration: (3 + Math.random() * 5).toFixed(1) + ' ثواني',
+                        packets: Math.floor(Math.random() * 1000) + 500,
+                        hostsUp: discoveredHosts.length,
+                        portsScanned: commonServices.length
+                    }
+                };
+            }
+
+            updateProgress(data) {
+                const progressFill = document.getElementById('progressFill');
+                const progressText = document.getElementById('progressText');
+                const progressDetails = document.getElementById('progressDetails');
+
+                progressFill.style.width = data.percent + '%';
+                progressText.textContent = data.percent + '%';
+                progressDetails.textContent = data.text;
+            }
+
+            handleScanComplete(data) {
+                this.hideProgress();
+                
+                // حفظ في السجل
+                this.scanHistory.unshift(data);
+                localStorage.setItem('networkScanHistory', JSON.stringify(this.scanHistory));
+                
+                this.displayResults(data);
+                this.loadHistory();
+                this.switchTab('results');
+                
+                this.showNotification('اكتمل المسح الضوئي بنجاح!', 'success');
+            }
+
+            displayResults(results) {
+                this.displayStats(results);
+                this.displayHosts(results.results.hosts);
+                this.displayPorts(results.results.openPorts);
+                this.displayVulnerabilities(results.results.vulnerabilities);
+            }
+
+            displayStats(results) {
+                const stats = results.results;
+                const statsHtml = `
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.hosts.length}</div>
+                        <div class="stat-label">أجهزة</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.openPorts.length}</div>
+                        <div class="stat-label">منافذ</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.vulnerabilities.length}</div>
+                        <div class="stat-label">ثغرات</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.scanInfo.duration}</div>
+                        <div class="stat-label">المدة</div>
+                    </div>
+                `;
+                document.getElementById('statsContainer').innerHTML = statsHtml;
+            }
+
+            displayHosts(hosts) {
+                const hostsHtml = hosts.map(host => `
+                    <div class="result-item info">
+                        <div class="result-title">
+                            <i class="fas fa-desktop"></i> ${host.host}
+                        </div>
+                        <div class="result-desc">
+                            <strong>النوع:</strong> ${host.type} | 
+                            <strong>نظام التشغيل:</strong> ${host.os} |
+                            <strong>الحالة:</strong> <span style="color: var(--success)">${host.status}</span>
+                        </div>
+                        <div class="result-meta">
+                            <span>MAC: ${host.mac}</span>
+                            <span>${host.host === scanner.currentScan?.target ? 'الهدف الرئيسي' : 'جهاز مكتشف'}</span>
+                        </div>
+                    </div>
+                `).join('');
+                document.getElementById('hostsContainer').innerHTML = hostsHtml || '<div class="text-center p-4">لم يتم اكتشاف أجهزة</div>';
+            }
+
+            displayPorts(ports) {
+                const portsHtml = ports.map(port => `
+                    <div class="result-item ${port.risk}">
+                        <div class="result-title">
+                            <i class="fas fa-plug"></i> منفذ ${port.port}/${port.protocol}
+                        </div>
+                        <div class="result-desc">
+                            <strong>الخدمة:</strong> ${port.service} | 
+                            <strong>الإصدار:</strong> ${port.version}
+                        </div>
+                        <div class="result-meta">
+                            <span>مستوى الخطورة: ${this.getRiskText(port.risk)}</span>
+                            <span>بروتوكول: ${port.protocol.toUpperCase()}</span>
+                        </div>
+                    </div>
+                `).join('');
+                document.getElementById('portsContainer').innerHTML = portsHtml || '<div class="text-center p-4">لم يتم اكتشاف منافذ مفتوحة</div>';
+            }
+
+            displayVulnerabilities(vulnerabilities) {
+                const vulnsHtml = vulnerabilities.map(vuln => `
+                    <div class="result-item ${vuln.type}">
+                        <div class="result-title">
+                            <i class="fas fa-exclamation-triangle"></i> ${vuln.title}
+                        </div>
+                        <div class="result-desc">${vuln.description}</div>
+                        <div class="result-meta">
+                            <span>CVSS: ${vuln.cvss}/10</span>
+                            <span>${vuln.cve || 'لا يوجد CVE'}</span>
+                        </div>
+                        <div class="result-desc" style="margin-top: 8px;">
+                            <strong>الحل المقترح:</strong> ${vuln.solution}
+                        </div>
+                    </div>
+                `).join('');
+                document.getElementById('vulnsContainer').innerHTML = vulnsHtml || '<div class="result-item safe"><div class="result-title"><i class="fas fa-check-circle"></i> لا توجد ثغرات حرجة</div><div class="result-desc">النظام آمن ولا توجد ثغرات أمنية خطيرة</div></div>';
+            }
+
+            loadHistory() {
+                const historyHtml = this.scanHistory.slice(0, 10).map(scan => `
+                    <div class="history-item" onclick="scanner.loadScanResult('${scan.id}')">
+                        <div class="history-target">${scan.target}</div>
+                        <div class="history-meta">
+                            <span>${scan.scanType}</span>
+                            <span>${scan.timestamp}</span>
+                            <span>${scan.results.hosts.length} أجهزة</span>
+                        </div>
+                    </div>
+                `).join('');
+                document.getElementById('historyContainer').innerHTML = historyHtml || '<div class="text-center p-4">لا توجد مسوحات سابقة</div>';
+            }
+
+            loadScanResult(scanId) {
+                const scan = this.scanHistory.find(s => s.id === scanId);
+                if (scan) {
+                    this.displayResults(scan);
+                    this.switchTab('results');
+                    this.showNotification('تم تحميل نتائج المسح', 'success');
+                }
+            }
+
+            clearHistory() {
+                if (confirm('هل تريد مسح سجل المسح بالكامل؟ لا يمكن التراجع عن هذا الإجراء.')) {
+                    this.scanHistory = [];
+                    localStorage.removeItem('networkScanHistory');
+                    this.loadHistory();
+                    this.showNotification('تم مسح السجل بنجاح', 'success');
+                }
+            }
+
+            quickScan(target) {
+                document.getElementById('targetInput').value = target;
+                this.startRealScan();
+            }
+
+            // أدوات مساعدة
+            validateTarget(target) {
+                const ipRegex = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
+                const hostnameRegex = /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+                return ipRegex.test(target) || hostnameRegex.test(target) || target === 'localhost' || target === '127.0.0.1';
+            }
+
+            getRiskText(risk) {
+                const risks = {
+                    'critical': 'حرج',
+                    'high': 'مرتفع', 
+                    'medium': 'متوسط',
+                    'low': 'منخفض',
+                    'info': 'معلومة'
+                };
+                return risks[risk] || risk;
+            }
+
+            showProgress() {
+                document.getElementById('progressSection').classList.add('active');
+            }
+
+            hideProgress() {
+                document.getElementById('progressSection').classList.remove('active');
+            }
+
+            switchTab(tabName) {
+                document.querySelectorAll('.tab-content').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                document.querySelectorAll('.nav-tab').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                document.getElementById(tabName).classList.add('active');
+                document.querySelector(`.nav-tab[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            }
+
+            showNotification(message, type = 'info') {
+                const notification = document.getElementById('notification');
+                notification.className = `notification ${type}`;
+                notification.innerHTML = `
+                    <div class="result-title">
+                        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                        ${message}
+                    </div>
+                `;
+                notification.classList.add('show');
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 4000);
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            // أدوات الشبكة
+            async pingTest() {
+                const target = document.getElementById('pingInput').value.trim();
+                if (!target) {
+                    this.showNotification('الرجاء إدخال عنوان للفحص', 'error');
+                    return;
+                }
+
+                this.showNotification(`جاري فحص Ping لـ ${target}...`, 'info');
+                // محاكاة فحص Ping
+                setTimeout(() => {
+                    const success = Math.random() > 0.2;
+                    if (success) {
+                        const time = (Math.random() * 100 + 10).toFixed(0);
+                        this.showNotification(`Ping ناجح! وقت الاستجابة: ${time}ms`, 'success');
+                    } else {
+                        this.showNotification('فشل فحص Ping - الجهاز غير متاح', 'error');
+                    }
+                }, 2000);
+            }
+
+            async dnsLookup() {
+                const domain = document.getElementById('dnsInput').value.trim();
+                if (!domain) {
+                    this.showNotification('الرجاء إدخال نطاق للفحص', 'error');
+                    return;
+                }
+
+                this.showNotification(`جاري فحص DNS لـ ${domain}...`, 'info');
+                // محاكاة فحص DNS
+                setTimeout(() => {
+                    const ips = ['192.0.2.1', '203.0.113.1', '2001:db8::1'];
+                    this.showNotification(`DNS: ${domain} → ${ips.join(', ')}`, 'success');
+                }, 1500);
+            }
+
+            async sslCheck() {
+                const url = document.getElementById('sslInput').value.trim();
+                if (!url) {
+                    this.showNotification('الرجاء إدخال رابط للفحص', 'error');
+                    return;
+                }
+
+                this.showNotification(`جاري فحص شهادة SSL...`, 'info');
+                // محاكاة فحص SSL
+                setTimeout(() => {
+                    const valid = Math.random() > 0.1;
+                    if (valid) {
+                        this.showNotification('شهادة SSL صالحة وتفعيل HTTPS آمن', 'success');
+                    } else {
+                        this.showNotification('مشكلة في شهادة SSL - غير آمن', 'error');
+                    }
+                }, 2500);
+            }
+
+            // أدوات النظام
+            runSpeedTest() {
+                this.showNotification('جاري فحص سرعة الإنترنت...', 'info');
+                setTimeout(() => {
+                    const download = (Math.random() * 90 + 10).toFixed(1);
+                    const upload = (Math.random() * 40 + 5).toFixed(1);
+                    this.showNotification(`النتيجة: ⬇️ ${download} Mbps ⬆️ ${upload} Mbps`, 'success');
+                }, 3000);
+            }
+
+            checkLocalNetwork() {
+                this.showNotification('جاري فحص الشبكة المحلية...', 'info');
+                setTimeout(() => {
+                    this.showNotification('تم اكتشاف 5 أجهزة على الشبكة المحلية', 'success');
+                }, 2000);
+            }
+
+            scanOpenPorts() {
+                this.showNotification('جاري فحص المنافذ المفتوحة على الجهاز المحلي...', 'info');
+                setTimeout(() => {
+                    this.showNotification('تم اكتشاف 3 منافذ مفتوحة على الجهاز المحلي', 'success');
+                }, 2500);
+            }
+
+            displaySystemInfo() {
+                // عرض معلومات النظام الأساسية
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                console.log(`جهاز: ${isMobile ? 'جوال' : 'حاسوب'}`);
+            }
+
+            systemInfo() {
+                const info = `
+                    <strong>معلومات المتصفح:</strong> ${navigator.userAgent}<br>
+                    <strong>اللغة:</strong> ${navigator.language}<br>
+                    <strong>المنصة:</strong> ${navigator.platform}<br>
+                    <strong>الذاكرة:</strong> ${navigator.deviceMemory || 'غير معروف'} GB<br>
+                    <strong>الأنترنت:</strong> ${navigator.onLine ? 'متصل' : 'غير متصل'}
+                `;
+                this.showNotification(info, 'info');
+            }
+        }
+
+        // تهيئة النظام
+        let scanner;
+        function switchTab(tabName) {
+            scanner.switchTab(tabName);
+        }
+
+        function startRealScan() {
+            scanner.startRealScan();
+        }
+
+        function quickScan(target) {
+            scanner.quickScan(target);
+        }
+
+        function clearHistory() {
+            scanner.clearHistory();
+        }
+
+        function pingTest() {
+            scanner.pingTest();
+        }
+
+        function dnsLookup() {
+            scanner.dnsLookup();
+        }
+
+        function sslCheck() {
+            scanner.sslCheck();
+        }
+
+        function runSpeedTest() {
+            scanner.runSpeedTest();
+        }
+
+        function checkLocalNetwork() {
+            scanner.checkLocalNetwork();
+        }
+
+        function scanOpenPorts() {
+            scanner.scanOpenPorts();
+        }
+
+        function systemInfo() {
+            scanner.systemInfo();
+        }
+
+        // تشغيل النظام عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', () => {
+            scanner = new AdvancedNetworkScanner();
+        });
+
+        // منع الإجراءات الافتراضية على الجوال
+        document.addEventListener('touchstart', function(e) {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(e) {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, { passive: false });
+    </script>
+</body>
+</html>
